@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #define SIZE 100
 
 
@@ -16,6 +17,14 @@ void main(int argc, char* argv[])
         unsigned char str[SIZE] = {'\0'};
         while(fgets(str, SIZE, file) != NULL)
         {
+            for(unsigned char i = 0; str[i] != '\0'; ++i)
+            {
+                if(str[i] == '\n')
+                {
+                    str[i] = '\0';
+                    break;
+                }
+            }
             puts(str);
             parseRecord(str, array);
         }
@@ -28,73 +37,88 @@ void parseRecord(unsigned char* str, unsigned char* array[])
     while(str[i] != '\0')
     {
         holder = calloc(counter + 1 , sizeof(unsigned char));
-        if(state == 0)
+        if(holder == NULL)
+            printf("FAIL TO ALLOCATE MEMORY\n");
+        else
         {
-            printf("%s%c\n", array[j++], str[i++]);
-            state = 1;
-        }
-        else if(state == 1)
-        {
-            while(counter != 0)
+            k = 0;
+            if(state == 0)
             {
-                holder[k++] = str[i++];
-                --counter;
+                printf("%s%c\n", array[j++], str[i++]);
+                state = 1;
             }
-            if(holder[1] == 'A')
-                byteCount = 10; 
-            else if(holder[1] == 'B')
-                byteCount = 11; 
-            else if(holder[1] == 'C')
-                byteCount = 12; 
-            else if(holder[1] == 'D')
-                byteCount = 13;
-            else if(holder[1] == 'E')
-                byteCount = 14;
-            else if(holder[1] == 'F')
-                byteCount = 15;  
-            else
-                byteCount = holder[1] - 0x30;
-            if(holder[0] - 0x30 >= 1)
-                byteCount += (holder[0] - 0x30) * 10 + 6; 
-            byteCount *= 2;
-            printf("bytecount = %u\n", byteCount);
-            printf("%s%s\n", array[j++], holder);
-            state = 2;
-            counter = 4;
-        }
-        else if(state == 2)
-        {
-            while(counter != 0)
+            else if(state == 1)
             {
-                holder[k++] = str[i++];
-                --counter;
+                while(counter != 0)
+                {
+                    holder[k++] = str[i++];
+                    --counter;
+                }
+                if(holder[1] == 'A')
+                    byteCount = 10; 
+                else if(holder[1] == 'B')
+                    byteCount = 11; 
+                else if(holder[1] == 'C')
+                    byteCount = 12; 
+                else if(holder[1] == 'D')
+                    byteCount = 13;
+                else if(holder[1] == 'E')
+                    byteCount = 14;
+                else if(holder[1] == 'F')
+                    byteCount = 15;  
+                else
+                    byteCount = holder[1] - 0x30;
+                if(holder[0] - 0x30 >= 1)
+                    byteCount += (holder[0] - 0x30) * 10 + 6; 
+                byteCount *= 2;
+                printf("%s%s\n", array[j++], holder);
+                state = 2;
+                counter = 4;
             }
-            printf("%s%s\n", array[j++], holder);
-            state = 3;
-            counter = 2;
-        }
-        else if(state == 3)
-        {
-            while(counter != 0)
+            else if(state == 2)
             {
-                holder[k++] = str[i++];
-                --counter;
+                while(counter != 0)
+                {
+                    holder[k++] = str[i++];
+                    --counter;
+                }
+                printf("%s%s\n", array[j++], holder);
+                state = 3;
+                counter = 2;
             }
-            printf("%s%s\n", array[j++], holder);
-            state = 4;
-            counter = byteCount;
-        }
-        else if(state == 4)
-        {
-            while(counter != 0)
+            else if(state == 3)
             {
-                holder[k++] = str[i++];
-                --counter;
+                while(counter != 0)
+                {
+                    holder[k++] = str[i++];
+                    --counter;
+                }
+                printf("%s%s\n", array[j++], holder);
+                state = 4;
+                counter = byteCount;
             }
-            printf("%s%s\n", array[j++], holder);
-            state = 4;
-            counter = byteCount;
+            else if(state == 4)
+            {
+                while(counter != 0)
+                {
+                    holder[k++] = str[i++];
+                    --counter;
+                }
+                printf("%s%s\n", array[j++], holder);
+                state = 5;
+                counter = 2;
+            }
+            else if(state == 5)
+            {
+                while(counter != 0)
+                {
+                    holder[k++] = str[i++];
+                    --counter;
+                }
+                printf("%s%s\n", array[j++], holder);
+            }
         }
-        k = 0;
     }
+    free(holder);
+    printf("\n\n");
 }
