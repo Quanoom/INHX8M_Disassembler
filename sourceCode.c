@@ -100,49 +100,42 @@ unsigned char* fillArrayDynamic(unsigned char* str, unsigned char counter, unsig
 void parseRecord(unsigned char* str, unsigned char* array[])
 {
     char counter = 2;
-    unsigned char* holder = NULL, j = 0, state = 0, i = 0, byteCount = 0;
+    unsigned char* holder = NULL, j = 1, state = 1, i = 1, byteCount = 0;
     unsigned char address = 0;
     while(str[i] != '\0')
     {
-        if(state == 0)
+        switch(state)
         {
-            printf("%s%c\n", array[j++], str[i++]);
-            state = 1;
-        }
-        else if(state == 1)
-        {
-            holder = fillArrayDynamic(str, counter, &i);
-            byteCount = strToInt(holder, counter, 0);
-            printf("%s%s\n", array[j++], holder);
-            state = 2;
-            counter = 4;
-        }
-        else if(state == 2)
-        {
-            holder = fillArrayDynamic(str, counter, &i);
-            printf("%s%s\n", array[j++], holder);
-            address = strToInt(holder, counter, 1);
-            state = 3;
-            counter = 2;
-        }
-        else if(state == 3)
-        {
-            holder = fillArrayDynamic(str, counter, &i);
-            printf("%s%s\n", array[j++], holder);
-            state = 4;
-            counter = byteCount;
-        }
-        else if(state == 4)
-        {
-            holder = fillArrayDynamic(str, counter, &i);
-            printf("%s%s\n", array[j++], holder);
-            state = 5;
-            counter = 2;
-        }
-        else if(state == 5)
-        {
-            holder = fillArrayDynamic(str, counter, &i);
-            printf("%s%s\n", array[j++], holder);
+            case 1 : 
+                holder = fillArrayDynamic(str, counter, &i);
+                byteCount = strToInt(holder, counter, 0);
+                printf("%s%s\n", array[j++], holder);
+                state = 2;
+                counter = 4;
+                break;
+            case 2 : 
+                holder = fillArrayDynamic(str, counter, &i);
+                printf("%s%s\n", array[j++], holder);
+                address = strToInt(holder, counter, 1);
+                state = 3;
+                counter = 2;
+                break;
+            case 3 : 
+                holder = fillArrayDynamic(str, counter, &i);
+                printf("%s%s\n", array[j++], holder);
+                state = 4;
+                counter = byteCount;
+                break;
+            case 4 : 
+                holder = fillArrayDynamic(str, counter, &i);
+                printf("%s%s\n", array[j++], holder);
+                state = 5;
+                counter = 2;
+                break;
+            case 5 : 
+                holder = fillArrayDynamic(str, counter, &i);
+                printf("%s%s\n", array[j++], holder);
+                break;
         }
         free(holder);
     }
