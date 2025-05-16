@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
+#include <stdbool.h>
 
 #define SIZE 100
 
@@ -12,9 +13,10 @@
 #define FOUR_DIGITS 1000
 
 
-void parseRecord(unsigned char* str, unsigned char* array[]);
+bool parseRecord(unsigned char* str, unsigned char* array[]);
 unsigned char strToInt(const unsigned char*, unsigned char, unsigned char);
 unsigned char* fillArrayDynamic(unsigned char*, unsigned char, unsigned char*);
+void generateAsmCode(unsigned char*, unsigned char);
 
 void main(int argc, char* argv[])
 {
@@ -35,8 +37,8 @@ void main(int argc, char* argv[])
                     break;
                 }
             }
-            puts(str);
-            parseRecord(str, array);
+            if(!parseRecord(str, array))
+                break;
         }
     }
 }
@@ -97,11 +99,10 @@ unsigned char* fillArrayDynamic(unsigned char* str, unsigned char counter, unsig
         return holder;
     }
 }
-void parseRecord(unsigned char* str, unsigned char* array[])
+bool parseRecord(unsigned char* str, unsigned char* array[])
 {
     char counter = 2;
-    unsigned char* holder = NULL, j = 1, state = 1, i = 1, byteCount = 0;
-    unsigned char address = 0;
+    unsigned char* holder = NULL, j = 1, state = 1, i = 1, byteCount = 0, address = 0;
     while(str[i] != '\0')
     {
         switch(state)
@@ -109,35 +110,56 @@ void parseRecord(unsigned char* str, unsigned char* array[])
             case 1 : 
                 holder = fillArrayDynamic(str, counter, &i);
                 byteCount = strToInt(holder, counter, 0);
-                printf("%s%s\n", array[j++], holder);
                 state = 2;
                 counter = 4;
                 break;
             case 2 : 
                 holder = fillArrayDynamic(str, counter, &i);
-                printf("%s%s\n", array[j++], holder);
                 address = strToInt(holder, counter, 1);
+                if(address % 2 != 0)
+                    return false;
                 state = 3;
                 counter = 2;
                 break;
             case 3 : 
                 holder = fillArrayDynamic(str, counter, &i);
-                printf("%s%s\n", array[j++], holder);
                 state = 4;
                 counter = byteCount;
                 break;
             case 4 : 
                 holder = fillArrayDynamic(str, counter, &i);
-                printf("%s%s\n", array[j++], holder);
+                generateAsmCode(holder, address);
                 state = 5;
                 counter = 2;
                 break;
             case 5 : 
                 holder = fillArrayDynamic(str, counter, &i);
-                printf("%s%s\n", array[j++], holder);
                 break;
         }
         free(holder);
     }
     printf("\n\n");
+    return true;
+}
+void generateAsmCode(unsigned char* machineCode, unsigned char startAddress)
+{
+    FILE* filePointer = fopen("assemblyCode.txt", "a");
+    if(filePointer == NULL)
+        printf("FAIL TO OPEN THE FILE\n");
+    else
+    {
+        unsigned char array[5] = {'\0'}, lastAddress = 0;
+        lastAddress = startAddress + (strlen(machineCode) / 2) - 2;
+        unsigned char sequence[] = {2, 3, 0, 1}, offset = 4, index, i = 0;
+        while(startAddress <= lastAddress)
+        {
+            index = 0;
+            printf("0x%X\t", startAddress);
+            for(; index < 4; ++index)
+                array[index] = machineCode[sequence[index] + i];
+            printf("%s\n", array);
+            startAddress += 2;
+            i += 4;
+        }
+    }
 }
