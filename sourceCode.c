@@ -143,23 +143,17 @@ bool parseRecord(unsigned char* str, unsigned char* array[])
 }
 void generateAsmCode(unsigned char* machineCode, unsigned char startAddress)
 {
-    FILE* filePointer = fopen("assemblyCode.txt", "a");
-    if(filePointer == NULL)
-        printf("FAIL TO OPEN THE FILE\n");
-    else
+    unsigned char array[5] = {'\0'}, lastAddress = 0;
+    lastAddress = startAddress + (strlen(machineCode) / 2) - 2;
+    unsigned char sequence[] = {2, 3, 0, 1}, offset = 4, index, i = 0;
+    while(startAddress <= lastAddress)
     {
-        unsigned char array[5] = {'\0'}, lastAddress = 0;
-        lastAddress = startAddress + (strlen(machineCode) / 2) - 2;
-        unsigned char sequence[] = {2, 3, 0, 1}, offset = 4, index, i = 0;
-        while(startAddress <= lastAddress)
-        {
-            index = 0;
-            printf("0x%X\t", startAddress);
-            for(; index < 4; ++index)
-                array[index] = machineCode[sequence[index] + i];
-            printf("%s\n", array);
-            startAddress += 2;
-            i += 4;
-        }
+        index = 0;
+        printf("0x%X\t", startAddress);
+        for(; index < 4; ++index)
+            array[index] = machineCode[sequence[index] + i];
+        printf("%s\n", array);
+        startAddress += 2;
+        i += 4;
     }
 }
