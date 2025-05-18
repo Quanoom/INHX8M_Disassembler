@@ -4,19 +4,37 @@
 #include <stdbool.h>
 
 #define SIZE 100
-
-
+#define LENGTH 6
 #define ZERO_DIGITS 0
 #define ONE_DIGITS 1
 #define TWO_DIGITS 10
 #define THREE_DIGITS 100
 #define FOUR_DIGITS 1000
+#define NUMBER_OF_INSTRUCTIONS 8
 
+
+typedef enum states     
+{
+    BYTE_COUNT,
+    ADDRESS,
+    RECORD_TYPE,
+    DATA_SECTION,
+    CHECK_SUM
+}STATE;
+
+
+typedef struct list
+{
+    unsigned char instruction[LENGTH];
+    unsigned char opcode[3];
+}LIST;
 
 bool parseRecord(unsigned char* str, unsigned char* array[]);
 unsigned char strToInt(const unsigned char*, unsigned char, unsigned char);
 unsigned char* fillArrayDynamic(unsigned char*, unsigned char, unsigned char*);
 void generateAsmCode(unsigned char*, unsigned char);
+bool checkOpcode(const unsigned char*, const unsigned char );
+
 
 void main(int argc, char* argv[])
 {
@@ -102,37 +120,38 @@ unsigned char* fillArrayDynamic(unsigned char* str, unsigned char counter, unsig
 bool parseRecord(unsigned char* str, unsigned char* array[])
 {
     char counter = 2;
-    unsigned char* holder = NULL, j = 1, state = 1, i = 1, byteCount = 0, address = 0;
+    unsigned char* holder = NULL, j = 1, i = 1, byteCount = 0, address = 0;
+    STATE recordFetch = BYTE_COUNT;
     while(str[i] != '\0')
     {
-        switch(state)
+        switch(recordFetch)
         {
-            case 1 : 
+            case BYTE_COUNT : 
                 holder = fillArrayDynamic(str, counter, &i);
                 byteCount = strToInt(holder, counter, 0);
-                state = 2;
+                recordFetch = ADDRESS;
                 counter = 4;
                 break;
-            case 2 : 
+            case ADDRESS : 
                 holder = fillArrayDynamic(str, counter, &i);
                 address = strToInt(holder, counter, 1);
                 if(address % 2 != 0)
                     return false;
-                state = 3;
+                recordFetch = RECORD_TYPE;
                 counter = 2;
                 break;
-            case 3 : 
+            case RECORD_TYPE : 
                 holder = fillArrayDynamic(str, counter, &i);
-                state = 4;
+                recordFetch = DATA_SECTION;
                 counter = byteCount;
                 break;
-            case 4 : 
+            case DATA_SECTION : 
                 holder = fillArrayDynamic(str, counter, &i);
                 generateAsmCode(holder, address);
-                state = 5;
+                recordFetch = CHECK_SUM;
                 counter = 2;
                 break;
-            case 5 : 
+            case CHECK_SUM : 
                 holder = fillArrayDynamic(str, counter, &i);
                 break;
         }
@@ -146,14 +165,34 @@ void generateAsmCode(unsigned char* machineCode, unsigned char startAddress)
     unsigned char array[5] = {'\0'}, lastAddress = 0;
     lastAddress = startAddress + (strlen(machineCode) / 2) - 2;
     unsigned char sequence[] = {2, 3, 0, 1}, offset = 4, index, i = 0;
+    printf("ADDRESSES\tINSTRUCTIONS : \n");
     while(startAddress <= lastAddress)
     {
         index = 0;
-        printf("0x%X\t", startAddress);
+        printf("0x%X\t\t", startAddress);
         for(; index < 4; ++index)
             array[index] = machineCode[sequence[index] + i];
-        printf("%s\n", array);
+        checkOpcode(array, startAddress);
         startAddress += 2;
         i += 4;
+    }
+}
+bool checkOpcode(const unsigned char* str, const unsigned char address)
+{
+    LIST array[NUMBER_OF_INSTRUCTIONS] = {{.instruction = "BRA", .opcode = "D0"}, {.instruction = "MOVLW", .opcode = "0E"},
+            {.instruction = "ADDLW", .opcode = "0F"}, {.instruction = "ANDLW", .opcode = "0B"},
+        {.instruction = "XORLW", .opcode = "0A"}, {.instruction = "IORLW", .opcode = "09"},
+    {.instruction = "SUBLW", .opcode = "08"}};
+
+    unsigned char operationCode[3] = {'\0'}, operandWithOpcode[3] = {'\0'};
+    for(unsigned char i = 0; i < 2; ++i)
+        operationCode[i] = str[i];
+    for(unsigned char i = 2; i < 4; ++i)
+        operandWithOpcode[i - 2] = str[i];
+
+    for(unsigned char i = 0; i < 7; ++i)
+    {
+        if(strcmp(operationCode, array[i].opcode) == 0)
+            printf("%s\t0x%s\n", array[i].instruction, operandWithOpcode);
     }
 }

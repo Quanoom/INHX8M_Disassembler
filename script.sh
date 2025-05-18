@@ -1,18 +1,15 @@
 #!/bin/bash
 
+echo "START COMPILATION"
 
+gcc sourceCode.c -o program
 
-# A BASH SCRIPT : 
-
-
-gcc sourceCode.c -o executable      # GENERATE THE EXECUTABLE FILE NAMED AS executable
-
-if [ $? -eq 0 ]; then               # CHECK IF LAST COMMAND GIVES 0 (success)
-    echo "executable gerenated"
-    ./executable                    # RUN THE EXECUTABLE LOCATED IN THE CURRENT DIRECTORY
+if [ $? -eq 0 ]; then
+    echo "COMPILATION DONE"
+    ./program
 else
-    echo "executable did not generated"
+    echo "COMPILATION FAILS"
 
 fi
 
-exec bash                   
+exec bash
