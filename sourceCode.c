@@ -12,7 +12,6 @@
 #define FOUR_DIGITS 1000
 #define NUMBER_OF_INSTRUCTIONS 8
 
-
 typedef enum states     
 {
     BYTE_COUNT,
@@ -182,7 +181,7 @@ bool checkOpcode(const unsigned char* str, const unsigned char address)
     LIST array[NUMBER_OF_INSTRUCTIONS] = {{.instruction = "BRA", .opcode = "D0"}, {.instruction = "MOVLW", .opcode = "0E"},
             {.instruction = "ADDLW", .opcode = "0F"}, {.instruction = "ANDLW", .opcode = "0B"},
         {.instruction = "XORLW", .opcode = "0A"}, {.instruction = "IORLW", .opcode = "09"},
-    {.instruction = "SUBLW", .opcode = "08"}};
+    {.instruction = "SUBLW", .opcode = "08"}, {.instruction = "MOVWF", .opcode = "6E"}};
 
     unsigned char operationCode[3] = {'\0'}, operandWithOpcode[3] = {'\0'};
     for(unsigned char i = 0; i < 2; ++i)
@@ -190,7 +189,7 @@ bool checkOpcode(const unsigned char* str, const unsigned char address)
     for(unsigned char i = 2; i < 4; ++i)
         operandWithOpcode[i - 2] = str[i];
 
-    for(unsigned char i = 0; i < 7; ++i)
+    for(unsigned char i = 0; i < NUMBER_OF_INSTRUCTIONS; ++i)
     {
         if(strcmp(operationCode, array[i].opcode) == 0)
             printf("%s\t0x%s\n", array[i].instruction, operandWithOpcode);
