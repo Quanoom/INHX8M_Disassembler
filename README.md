@@ -12,7 +12,6 @@ This is useful for:
 
 To parse and disassemble an **INHX8M HEX file** and reconstruct the original **assembly code** using the instruction set of the target microcontroller.
 
----
 
 ## 📁 File Format: INHX8M
 
