@@ -10,7 +10,10 @@
 #define TWO_DIGITS 10
 #define THREE_DIGITS 100
 #define FOUR_DIGITS 1000
-#define NUMBER_OF_INSTRUCTIONS 8
+#define LITERAL_INSTRUCTION 6
+#define BYTE_INSTRUCTION 4
+#define JUMP_CALL_INSTRUCTION 1
+
 
 typedef enum states     
 {
@@ -21,18 +24,34 @@ typedef enum states
     CHECK_SUM
 }STATE;
 
+typedef enum instructions
+{
+    LITERAL,
+    BIT,
+    BYTE,
+    JUMP_CALL
+}INST;
+
+
+typedef struct bits
+{
+    unsigned char a : 1;
+    unsigned char d : 1;
+}BITS;
 
 typedef struct list
 {
     unsigned char instruction[LENGTH];
-    unsigned char opcode[3];
+    unsigned short opcode;
 }LIST;
 
 bool parseRecord(unsigned char* str, unsigned char* array[]);
-unsigned char strToInt(const unsigned char*, unsigned char, unsigned char);
+unsigned short strToInt(const unsigned char*, unsigned char, unsigned char);
 unsigned char* fillArrayDynamic(unsigned char*, unsigned char, unsigned char*);
 void generateAsmCode(unsigned char*, unsigned char);
-bool checkOpcode(const unsigned char*, const unsigned char );
+bool checkOpcode(const unsigned char*, unsigned char);
+bool sfunction(LIST*, unsigned short, unsigned char, unsigned char);
+bool function(unsigned char , INST, LIST*, unsigned char, unsigned short);
 
 
 void main(int argc, char* argv[])
@@ -59,41 +78,44 @@ void main(int argc, char* argv[])
         }
     }
 }
-unsigned char strToInt(const unsigned char* str, unsigned char counter, unsigned char flag)
+unsigned short strToInt(const unsigned char* str, unsigned char counter, unsigned char flag)
 {
     unsigned short array[] = {ZERO_DIGITS, ONE_DIGITS, TWO_DIGITS, THREE_DIGITS, FOUR_DIGITS}, i = 0;
-    unsigned short result = 0;
+    unsigned short result = 0, temp = 0;
     while(str[i] != '\0')
     {
         if(str[i] >= 65)
         {
             if(counter >= 2)
             {
-                result += (str[i] - 55);
+                //result += (str[i] - 55);
+                temp = (str[i] - 55);
                 if(counter == 4)
-                    result *= (array[counter] / 100 + 6) * (array[counter] / 100 + 6) * (array[counter] / 100 + 6);
+                    temp *= (array[counter] / 100 + 6) * (array[counter] / 100 + 6) * (array[counter] / 100 + 6);
                 else if (counter == 3)
-                    result *= (array[counter] / 10 + 6) * (array[counter] / 10 + 6);
+                    temp *= (array[counter] / 10 + 6) * (array[counter] / 10 + 6);
                 else if(counter == 2)
-                    result *= (array[counter] + 6);
+                    temp *= (array[counter] + 6);
             }
             else
-                result += str[i] - 55;
+                temp = str[i] - 55;
+            result += temp;
         }
         else 
         {
             if(counter >= 2)
             {
-                result += (str[i] - 0x30);
+                temp = (str[i] - 0x30);
                 if(counter == 4)
-                    result *= (array[counter] / 100 + 6) * (array[counter] / 100 + 6) * (array[counter] / 100 + 6);
+                    temp *= (array[counter] / 100 + 6) * (array[counter] / 100 + 6) * (array[counter] / 100 + 6);
                 else if (counter == 3)
-                    result *= (array[counter] / 10 + 6) * (array[counter] / 10 + 6);
+                    temp *= (array[counter] / 10 + 6) * (array[counter] / 10 + 6);
                 else if(counter == 2)
-                    result *= (array[counter] + 6);
+                    temp *= (array[counter] + 6);
             }
             else
-                result += (str[i] - 0x30);
+                temp = (str[i] - 0x30);
+            result += temp;
         }
         ++i;
         --counter;
@@ -119,7 +141,8 @@ unsigned char* fillArrayDynamic(unsigned char* str, unsigned char counter, unsig
 bool parseRecord(unsigned char* str, unsigned char* array[])
 {
     char counter = 2;
-    unsigned char* holder = NULL, j = 1, i = 1, byteCount = 0, address = 0;
+    unsigned char* holder = NULL, j = 1, i = 1;
+    unsigned short byteCount = 0, address = 0;;
     STATE recordFetch = BYTE_COUNT;
     while(str[i] != '\0')
     {
@@ -164,34 +187,94 @@ void generateAsmCode(unsigned char* machineCode, unsigned char startAddress)
     unsigned char array[5] = {'\0'}, lastAddress = 0;
     lastAddress = startAddress + (strlen(machineCode) / 2) - 2;
     unsigned char sequence[] = {2, 3, 0, 1}, offset = 4, index, i = 0;
-    printf("ADDRESSES\tINSTRUCTIONS : \n");
+    printf("ADDRESSES : \tINSTRUCTIONS : \n");
     while(startAddress <= lastAddress)
     {
         index = 0;
         printf("0x%X\t\t", startAddress);
         for(; index < 4; ++index)
             array[index] = machineCode[sequence[index] + i];
-        checkOpcode(array, startAddress);
+        if(! checkOpcode(array, startAddress))
+        {
+            printf("UNKNOWN OPCODE\n");
+            break;
+        }
         startAddress += 2;
         i += 4;
     }
 }
-bool checkOpcode(const unsigned char* str, const unsigned char address)
+bool checkOpcode(const unsigned char* str, unsigned char address)
 {
-    LIST array[NUMBER_OF_INSTRUCTIONS] = {{.instruction = "BRA", .opcode = "D0"}, {.instruction = "MOVLW", .opcode = "0E"},
-            {.instruction = "ADDLW", .opcode = "0F"}, {.instruction = "ANDLW", .opcode = "0B"},
-        {.instruction = "XORLW", .opcode = "0A"}, {.instruction = "IORLW", .opcode = "09"},
-    {.instruction = "SUBLW", .opcode = "08"}, {.instruction = "MOVWF", .opcode = "6E"}};
+    BITS instructionBits;
+    unsigned short operationCode = strToInt(str, strlen(str), 1);
+    unsigned short result = 0, operand = 0;
+    INST which = LITERAL;
+    LIST literalInstruction[LITERAL_INSTRUCTION] = {{.instruction = "MOVLW", .opcode = 0x000E}, {.instruction = "ADDLW", .opcode = 0x000F}, 
+    {.instruction = "ANDLW", .opcode = 0x000B},{.instruction = "XORLW", .opcode = 0x000A}, 
+    {.instruction = "IORLW", .opcode = 0x0009},{.instruction = "SUBLW", .opcode = 0x0008}};
 
-    unsigned char operationCode[3] = {'\0'}, operandWithOpcode[3] = {'\0'};
-    for(unsigned char i = 0; i < 2; ++i)
-        operationCode[i] = str[i];
-    for(unsigned char i = 2; i < 4; ++i)
-        operandWithOpcode[i - 2] = str[i];
+    LIST byteOrientedInstruction[BYTE_INSTRUCTION] = {{.instruction = "MOVWF", .opcode = 0x0037}, 
+    {.instruction = "NEGF", .opcode = 0x0036}, {.instruction = "MULWF", .opcode = 0x0001}, 
+    {.instruction = "SETF", .opcode = 0x0034}};
 
-    for(unsigned char i = 0; i < NUMBER_OF_INSTRUCTIONS; ++i)
+    LIST jumpCallIns[JUMP_CALL_INSTRUCTION] = {{.instruction = "BRA", .opcode = 0x000D}};
+
+
+    result = (operationCode & 0xFF00) >>8;
+    operand = operationCode & 0x00FF;
+    
+    if(function(result, which, literalInstruction, operand, operationCode))
+        return true;
+    else
     {
-        if(strcmp(operationCode, array[i].opcode) == 0)
-            printf("%s\t0x%s\n", array[i].instruction, operandWithOpcode);
+        result = (operationCode & 0xFE00) >> 9;
+        operand = operationCode & 0x00FF;
+        which = BYTE;
+        if(function(result, which, byteOrientedInstruction, operand, operationCode))
+            return true;
+        else
+        {
+            result = (operationCode & 0xF800) >> 12;
+            operand = (operationCode & 0x07FF) * 2 + address + 2 ;
+            which = JUMP_CALL;
+            if(function(result, which, jumpCallIns, operand, operationCode))
+                return true;
+            else
+                return false;
+        }
     }
+}
+bool function(unsigned char result, INST which, LIST* array, unsigned char operand, unsigned short operationCode)
+{
+    unsigned char max = 0;
+    BITS instructionBits;
+    if(which == LITERAL)  
+        max = LITERAL_INSTRUCTION;
+    else if(which == BYTE)
+        max = BYTE_INSTRUCTION;
+    else if(which == JUMP_CALL)
+        max = JUMP_CALL_INSTRUCTION;
+    for(unsigned char i = 0; i < max; ++i)
+    {
+        if(result == array[i].opcode)
+        {
+            if(which == LITERAL)
+            {
+                printf("%s\t0x%X\n", array[i].instruction, operand);
+                return true;
+            }
+            else if(which == BYTE)
+            {
+                instructionBits.a = (operationCode & 0x0100) >> 8;
+                printf("%s\t0x%X, %hu\n", array[i].instruction, operand, instructionBits.a);
+                return true;
+            }
+            else if(which == JUMP_CALL)
+            {
+                printf("%s\t0x%X\n", array[i].instruction, operand);
+                return true;
+            }
+        }
+    } 
+    return false;
 }
